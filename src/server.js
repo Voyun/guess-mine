@@ -21,7 +21,7 @@ const io = socketIO.listen(server);
 
 //let sockets = [];
 
-io.on("connection", socket => socketController(socket));
+io.on("connection", socket => socketController(socket, io));
    
 
 
