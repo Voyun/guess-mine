@@ -4,6 +4,7 @@ import { chooseWord } from "./words";
 let sockets = [];
 let inProgress = false;
 let word = null; 
+let leader = null;
 
 const chooseLeader = () => sockets[Math.floor(Math.random() * sockets.length)];
 
@@ -20,7 +21,16 @@ const socketController = (socket, io) => {
             inProgress = true;
             const leader = chooseLeader();
             word = chooseWord();
+            setTimeout(() => {
+                superBroadcast(events.gameStarted);
+                io.to(leader.id).emit(events.leaderNotif, { word });
+            }, 2000);   
         }
+    };
+
+    const endGame = () => { 
+        inProgress = false; 
+        superBroadcast(events.gameEnded);
     };
 
     socket.on(events.setNickname, ({nickname}) => {
@@ -29,12 +39,21 @@ const socketController = (socket, io) => {
         broadcast(events.newUser, { nickname });
         socket.nickname = nickname;
         sendPlayerUpdate();
-        startGame();
+        if(sockets.length === 2){
+            startGame();
+        }
     });
 
     socket.on(events.disconnect, () => {
         console.log("disconnected");
         sockets = sockets.filter(aSocket => aSocket.id !== socket.id);
+        if(sockets.length === 1){
+            endGame();
+        } else if ( leader ){
+            if(leader.id === socket.id){
+               endGame(); 
+            }
+        }
         broadcast(events.disconnected, { nickname: socket.nickname });
         sendPlayerUpdate();
     });
